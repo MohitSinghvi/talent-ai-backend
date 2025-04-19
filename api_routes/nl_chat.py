@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from pymongo import MongoClient
-from api_routes.mongo_chain import generate_pipeline_with_langchain
+from services.nl_to_sql import generate_pipeline_with_langchain
 import os
 
 router = APIRouter()

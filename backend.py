@@ -13,8 +13,10 @@ from sklearn.metrics import (
     roc_auc_score
 )
 from xgboost import XGBClassifier
+from api_routes import nl_chat
 
 app = FastAPI()
+app.include_router(nl_chat.router)
 
 # Allow CORS so React frontend can call API
 app.add_middleware(
