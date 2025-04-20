@@ -6,7 +6,7 @@ import json
 
 load_dotenv()
 
-llm = ChatOpenAI(temperature=0, model="gpt-4")
+llm = ChatOpenAI(temperature=0, model="gpt-4o")
 
 prompt_template = PromptTemplate.from_template("""
 You are a MongoDB expert assistant.
