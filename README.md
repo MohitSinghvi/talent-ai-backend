@@ -1,1 +1,3 @@
-Run using: uvicorn backend:app --reload
+Run using: 
+cd project
+uvicorn app.main:app --host 127.0.0.1 --port 8000
