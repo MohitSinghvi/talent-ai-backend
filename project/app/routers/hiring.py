@@ -35,19 +35,25 @@ def predictive_hiring():
         "suggested_candidates": suggested_candidates
     }
 
+
 @router.get("/talent_pool")
 def get_talent_pool(
+    
     page: int = Query(1, ge=1),
     limit: int = Query(6, ge=1),
     search: str = Query("", alias="search"),
+    experience: str = Query("", regex="^(0-2|3-5|6\+)?$"),
+    roles: str = Query("", alias="roles"),
     sort_by: str = Query("matchScore", regex="^(matchScore|experience|education)$"),
     sort_order: str = Query("desc", regex="^(asc|desc)$")
 ):
-    """Search and paginate the talent pool."""
+    """Search and paginate the talent pool with filters."""
     if applicants_data.empty:
         return {"candidates": [], "total": 0, "page": page, "totalPages": 0}
 
     df = applicants_data.copy()
+
+    # Apply search filter
     if search:
         search_lower = search.lower()
         df = df[df.apply(
@@ -59,10 +65,26 @@ def get_talent_pool(
             axis=1
         )]
 
+    # Apply experience filter
+    if experience:
+        if experience == "0-2":
+            df = df[df["Years of Experience"].between(0, 2)]
+        elif experience == "3-5":
+            df = df[df["Years of Experience"].between(3, 5)]
+        elif experience == "6+":
+            df = df[df["Years of Experience"] >= 6]
+    # Apply role filter
+    if roles:
+        role_list = [r.strip() for r in roles.split(",") if r.strip()]
+        if role_list:
+            df = df[df["Job Title"].isin(role_list)]
+
+    # Derived values for sorting
     df["matchScore"] = 75 + (df.index % 25)
     df["experienceValue"] = df["Years of Experience"].fillna(0)
     df["education"] = df["Education Level"].fillna("")
 
+    # Sorting
     if sort_by == "matchScore":
         df = df.sort_values(by="matchScore", ascending=(sort_order == "asc"))
     elif sort_by == "experience":
@@ -70,12 +92,14 @@ def get_talent_pool(
     elif sort_by == "education":
         df = df.sort_values(by="education", ascending=(sort_order == "asc"))
 
+    # Pagination
     total = len(df)
     total_pages = math.ceil(total / limit)
     start = (page - 1) * limit
     end = start + limit
     sliced = df.iloc[start:end]
 
+    # Format response
     candidates = [
         {
             "id": int(row["Applicant ID"]),
@@ -97,6 +121,7 @@ def get_talent_pool(
         "page": page,
         "totalPages": total_pages
     }
+
 
 @router.get("/hire_alternatives")
 def hire_alternatives():
