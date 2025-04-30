@@ -11,7 +11,7 @@ router = APIRouter()
 
 # Initialize data and model
 hr_data, skills_data, applicants_data = data_loader.get_data()
-attrition_model = AttritionModel(hr_data)
+attrition_model = AttritionModel(hr_data, skills_data)
 predict_data = attrition_model.get_predict_data()
 feature_columns = attrition_model.get_feature_columns()
 feature_importances = attrition_model.get_feature_importances()
@@ -21,6 +21,9 @@ def predictive_hiring():
     """Suggest hires based on attrition risk threshold."""
     threshold = 0.5
     num_employees_at_risk = predict_data[predict_data['Attrition_Risk'] > threshold].shape[0]
+    retention_rate = attrition_model.get_retention_rate()  
+    replacement_cost = attrition_model.get_total_replacement_cost()
+
     number_of_hires = num_employees_at_risk
     talent_pool = [
         {"CandidateID": 101, "Name": "Alice Smith", "Experience": "5 years", "Skill": "Sales"},
@@ -31,8 +34,12 @@ def predictive_hiring():
     ]
     suggested_candidates = talent_pool if number_of_hires > len(talent_pool) else random.sample(talent_pool, number_of_hires)
     return {
+        "num_employees_at_risk":num_employees_at_risk,
         "number_of_hires": number_of_hires,
-        "suggested_candidates": suggested_candidates
+        "suggested_candidates": suggested_candidates,
+        "retention_rate": retention_rate,
+        "replacement_cost": replacement_cost
+        # "percentage_change": round(percentage_change, 1),
     }
 
 

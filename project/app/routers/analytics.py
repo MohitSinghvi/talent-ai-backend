@@ -8,7 +8,7 @@ router = APIRouter()
 
 # Initialize ML model
 hr_data, skills_data, applicants_data = data_loader.get_data()
-attrition_model = AttritionModel(hr_data)
+attrition_model = AttritionModel(hr_data, skills_data)
 predict_data = attrition_model.get_predict_data()
 feature_columns = attrition_model.get_feature_columns()
 feature_importances = attrition_model.get_feature_importances()

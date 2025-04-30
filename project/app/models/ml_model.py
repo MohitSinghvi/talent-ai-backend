@@ -5,13 +5,14 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from typing import Tuple, Dict
 
 class AttritionModel:
-    def __init__(self, data: pd.DataFrame):
+    def __init__(self, data: pd.DataFrame, skills_data):
         self.model = XGBClassifier(random_state=42)
         self.feature_columns = None
         self.feature_importances = None
         self.metrics = {}
         self.predict_data = None
         self._train_model(data)
+        self.skills_data = skills_data
 
     def _train_model(self, data: pd.DataFrame):
         """Train the XGBoost model."""
@@ -81,3 +82,28 @@ class AttritionModel:
     def get_feature_columns(self) -> list:
         """Return feature columns."""
         return self.feature_columns
+    
+    def get_retention_rate(self) -> float:
+        total_employees = len(self.predict_data)
+        retained_employees = self.predict_data[self.predict_data['Attrition_Risk'] <= 0.5].shape[0]
+        return round((retained_employees / total_employees) * 100, 2)
+
+    def get_total_replacement_cost(self, top_n: int = 5) -> float:
+        """Calculate total replacement cost for top N high-risk employees."""
+        top_employees = self.predict_data.nlargest(top_n, 'Attrition_Risk')
+        total_cost = 0
+
+        for _, emp in top_employees.iterrows():
+            emp_id = int(emp["OriginalEmployeeNumber"])
+            emp_record = self.skills_data[self.skills_data["EmployeeNumber"] == emp_id].squeeze()
+
+            monthly_income = float(emp_record.get("MonthlyIncome", 5000))  # fallback if missing
+            annual_salary = monthly_income * 12
+            job_level = int(emp_record.get("JobLevel", 2))
+            multiplier = {1: 0.5, 2: 1.0, 3: 1.25, 4: 1.5, 5: 2.0}.get(job_level, 1.0)
+
+            total_cost += annual_salary * multiplier
+
+        return round(total_cost, 2)
+
+
