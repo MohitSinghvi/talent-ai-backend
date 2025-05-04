@@ -112,6 +112,7 @@ def get_talent_pool(
             "id": int(row["Applicant ID"]),
             "name": f"{row['First Name']} {row['Last Name']}",
             "role": row["Job Title"],
+            "email": row["Email"],
             "experience": f"{int(row['Years of Experience'])} years" if pd.notnull(row["Years of Experience"]) else "N/A",
             "education": row.get("Education Level", "N/A"),
             "location": f"{row.get('City', '')}, {row.get('State', '')}",
