@@ -200,8 +200,9 @@ def get_department_data():
         how="left"
     )
     merged["Attrition_Risk"].fillna(0, inplace=True)
-
     departments = []
+    department_list = sorted(merged["Department"].unique().tolist())  
+    department_id_map = {dept: idx for idx, dept in enumerate(department_list)}  
     for dept_name, grp in merged.groupby("Department"):
         preview_emps = [
             {
@@ -214,6 +215,7 @@ def get_department_data():
         ]
 
         departments.append({
+            "id": department_id_map[dept_name],
             "name": dept_name,
             "headCount": int(grp.shape[0]),
             "manager": {
@@ -231,6 +233,41 @@ def get_department_data():
         })
 
     return jsonable_encoder(departments)
+
+@router.get("/department_data/name/{department}")
+def get_department_employees_by_department(department: str):
+    """Get all employees for a specific department by name (case-insensitive)."""
+    if not department:
+        raise HTTPException(status_code=400, detail="Invalid department name")
+
+    merged = skills_data.merge(
+        predict_data[["OriginalEmployeeNumber", "Attrition_Risk"]],
+        left_on="EmployeeNumber",
+        right_on="OriginalEmployeeNumber",
+        how="left"
+    )
+    merged["Attrition_Risk"].fillna(0, inplace=True)
+
+    department_normalized = department.strip().lower()
+    filtered = merged[merged["Department"].str.lower() == department_normalized]
+
+    if filtered.empty:
+        raise HTTPException(status_code=404, detail="No employees found in this department")
+
+    employees = [
+        {
+            "name": f"{row['FirstName']} {row['LastName']}",
+            "role": row["JobRole"],
+            "email": (
+                f"{str(row.get('FirstName', '')).strip().lower()}."
+                f"{str(row.get('LastName', '')).strip().lower()}@company.com"
+            ),
+            "image": f"https://source.unsplash.com/80x80/?portrait&sig={row['EmployeeNumber']}"
+        }
+        for _, row in filtered.iterrows()
+    ]
+
+    return jsonable_encoder(employees)
 
 @router.get("/employee_by_name")
 def get_employee_by_name(name: str = Query(..., description="Full, first, or last name of the employee")):

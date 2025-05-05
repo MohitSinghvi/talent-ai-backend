@@ -5,8 +5,8 @@ from app.services.rag_service import setup_rag, setup_agent
 router = APIRouter()
 
 # Setup RAG and agent
-# rag_chain, _ = setup_rag()
-# agent = setup_agent(rag_chain)
+rag_chain, _ = setup_rag()
+agent = setup_agent(rag_chain)
 
 @router.post("/", response_model=ChatResponse)
 def chat(req: ChatRequest):
