@@ -11,7 +11,7 @@ router = APIRouter()
 
 # Initialize data and model
 hr_data, skills_data, applicants_data = data_loader.get_data()
-attrition_model = AttritionModel(hr_data)
+attrition_model = AttritionModel(hr_data, skills_data)
 predict_data = attrition_model.get_predict_data()
 feature_columns = attrition_model.get_feature_columns()
 feature_importances = attrition_model.get_feature_importances()
@@ -21,6 +21,9 @@ def predictive_hiring():
     """Suggest hires based on attrition risk threshold."""
     threshold = 0.5
     num_employees_at_risk = predict_data[predict_data['Attrition_Risk'] > threshold].shape[0]
+    retention_rate = attrition_model.get_retention_rate()  
+    replacement_cost = attrition_model.get_total_replacement_cost()
+
     number_of_hires = num_employees_at_risk
     talent_pool = [
         {"CandidateID": 101, "Name": "Alice Smith", "Experience": "5 years", "Skill": "Sales"},
@@ -31,8 +34,12 @@ def predictive_hiring():
     ]
     suggested_candidates = talent_pool if number_of_hires > len(talent_pool) else random.sample(talent_pool, number_of_hires)
     return {
+        "num_employees_at_risk":num_employees_at_risk,
         "number_of_hires": number_of_hires,
-        "suggested_candidates": suggested_candidates
+        "suggested_candidates": suggested_candidates,
+        "retention_rate": retention_rate,
+        "replacement_cost": replacement_cost
+        # "percentage_change": round(percentage_change, 1),
     }
 
 
@@ -105,6 +112,7 @@ def get_talent_pool(
             "id": int(row["Applicant ID"]),
             "name": f"{row['First Name']} {row['Last Name']}",
             "role": row["Job Title"],
+            "email": row["Email"],
             "experience": f"{int(row['Years of Experience'])} years" if pd.notnull(row["Years of Experience"]) else "N/A",
             "education": row.get("Education Level", "N/A"),
             "location": f"{row.get('City', '')}, {row.get('State', '')}",
@@ -192,8 +200,9 @@ def get_department_data():
         how="left"
     )
     merged["Attrition_Risk"].fillna(0, inplace=True)
-
     departments = []
+    department_list = sorted(merged["Department"].unique().tolist())  
+    department_id_map = {dept: idx for idx, dept in enumerate(department_list)}  
     for dept_name, grp in merged.groupby("Department"):
         preview_emps = [
             {
@@ -206,6 +215,7 @@ def get_department_data():
         ]
 
         departments.append({
+            "id": department_id_map[dept_name],
             "name": dept_name,
             "headCount": int(grp.shape[0]),
             "manager": {
@@ -223,6 +233,41 @@ def get_department_data():
         })
 
     return jsonable_encoder(departments)
+
+@router.get("/department_data/name/{department}")
+def get_department_employees_by_department(department: str):
+    """Get all employees for a specific department by name (case-insensitive)."""
+    if not department:
+        raise HTTPException(status_code=400, detail="Invalid department name")
+
+    merged = skills_data.merge(
+        predict_data[["OriginalEmployeeNumber", "Attrition_Risk"]],
+        left_on="EmployeeNumber",
+        right_on="OriginalEmployeeNumber",
+        how="left"
+    )
+    merged["Attrition_Risk"].fillna(0, inplace=True)
+
+    department_normalized = department.strip().lower()
+    filtered = merged[merged["Department"].str.lower() == department_normalized]
+
+    if filtered.empty:
+        raise HTTPException(status_code=404, detail="No employees found in this department")
+
+    employees = [
+        {
+            "name": f"{row['FirstName']} {row['LastName']}",
+            "role": row["JobRole"],
+            "email": (
+                f"{str(row.get('FirstName', '')).strip().lower()}."
+                f"{str(row.get('LastName', '')).strip().lower()}@company.com"
+            ),
+            "image": f"https://source.unsplash.com/80x80/?portrait&sig={row['EmployeeNumber']}"
+        }
+        for _, row in filtered.iterrows()
+    ]
+
+    return jsonable_encoder(employees)
 
 @router.get("/employee_by_name")
 def get_employee_by_name(name: str = Query(..., description="Full, first, or last name of the employee")):
