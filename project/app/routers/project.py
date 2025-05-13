@@ -5,6 +5,7 @@ from app.services.pdf_processor import extract_pdf_text, analyze_project
 import pandas as pd
 import re
 from typing import List
+import random
 
 router = APIRouter()
 
@@ -18,6 +19,8 @@ async def upload_project_pdf(file: UploadFile = File(...)):
     _, _, applicants_data = data_loader.get_data()
     final_team_plan = []
 
+    # print(parsed)
+
     team_items = parsed.get("team", [])
     if not team_items:
         raise HTTPException(status_code=400, detail="No team plan found in response.")
@@ -25,7 +28,7 @@ async def upload_project_pdf(file: UploadFile = File(...)):
     for item in team_items:
         role = item.get("title", "Unknown Role")
         required_skills = item.get("skills", [])
-        count = item.get("count", 1)
+        count = item.get("count", random.randint(1, 5))
 
         def normalize(skill):
             return re.sub(r"[^\w]", "", skill.lower()) if isinstance(skill, str) else ""
@@ -44,6 +47,8 @@ async def upload_project_pdf(file: UploadFile = File(...)):
         matching = [
             {
                 "name": f"{row['First Name']} {row['Last Name']}",
+                "id": row['Applicant ID'],
+                "email":row['Email'],
                 "experience": f"{row['Years of Experience']} years",
                 "skills": row["Skills"],
                 "role": row["Job Title"],

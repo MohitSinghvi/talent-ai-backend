@@ -25,14 +25,16 @@ def get_risk_curve_data():
 
 @router.get("/top_employees_data")
 def get_top_employees_data():
-    """Get the top 10 highest-risk employees."""
+    """Get the top 10 highest-risk employees with their top 3 contributing factors."""
     top_employees = predict_data.nlargest(10, 'Attrition_Risk').copy()
     reasons = []
 
     for index, row in top_employees.iterrows():
-        employee_features = predict_data.loc[index, feature_columns]
-        abs_contributions = employee_features * feature_importances
-        top_reason = abs_contributions.idxmax()
+        employee_features = predict_data.loc[index, feature_columns].astype(float)
+        feature_importances_numeric = feature_importances.astype(float)
+        abs_contributions = employee_features * feature_importances_numeric
+        # Get the top 3 contributing factors
+        top_3_reasons = abs_contributions.nlargest(3).index.tolist()
 
         emp_number = row["OriginalEmployeeNumber"]
         emp_record = skills_data[skills_data["EmployeeNumber"] == emp_number].squeeze()
@@ -42,7 +44,7 @@ def get_top_employees_data():
             "FirstName": emp_record.get("FirstName", ""),
             "LastName": emp_record.get("LastName", ""),
             "Attrition_Risk_Percentage": round(float(row["Attrition_Risk"]) * 100, 2),
-            "Top_Contributing_Factor": top_reason,
+            "Top_Contributing_Factors": top_3_reasons,
             "Department": row["OriginalDepartment"]
         })
 

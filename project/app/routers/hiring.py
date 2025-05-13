@@ -21,8 +21,8 @@ def predictive_hiring():
     """Suggest hires based on attrition risk threshold."""
     threshold = 0.5
     num_employees_at_risk = predict_data[predict_data['Attrition_Risk'] > threshold].shape[0]
-    retention_rate = attrition_model.get_retention_rate()  
-    replacement_cost = attrition_model.get_total_replacement_cost()
+    # retention_rate = attrition_model.get_retention_rate()  
+    # replacement_cost = attrition_model.get_total_replacement_cost()
 
     number_of_hires = num_employees_at_risk
     talent_pool = [
@@ -37,8 +37,8 @@ def predictive_hiring():
         "num_employees_at_risk":num_employees_at_risk,
         "number_of_hires": number_of_hires,
         "suggested_candidates": suggested_candidates,
-        "retention_rate": retention_rate,
-        "replacement_cost": replacement_cost
+        # "retention_rate": retention_rate,
+        # "replacement_cost": replacement_cost
         # "percentage_change": round(percentage_change, 1),
     }
 
@@ -84,7 +84,9 @@ def get_talent_pool(
     if roles:
         role_list = [r.strip() for r in roles.split(",") if r.strip()]
         if role_list:
-            df = df[df["Job Title"].isin(role_list)]
+            # df = df[df["Job Title"].lower().isin(role_list)]
+            df = df[df["Job Title"].str.lower().isin([r.lower() for r in role_list])]
+
 
     # Derived values for sorting
     df["matchScore"] = 75 + (df.index % 25)
@@ -169,8 +171,10 @@ def hire_alternatives():
                 final_score = round((0.7 * skill_score + 0.3 * exp_score) * 100, 2)
 
                 candidate_matches.append({
+                    "id": cand['Applicant ID'],
                     "name": f"{cand['First Name']} {cand['Last Name']}",
                     "role": cand["Job Title"],
+                    "email": cand['Email'],
                     "experience": f"{int(cand['Years of Experience'])} years",
                     "matchScore": final_score,
                     "skills": list(cand_skills),
@@ -350,3 +354,6 @@ def get_candidate_detail(app_id: int):
     if row.empty:
         raise HTTPException(status_code=404, detail="Candidate not found.")
     return jsonable_encoder(row.iloc[0].to_dict())
+
+
+

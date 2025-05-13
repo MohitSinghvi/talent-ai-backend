@@ -77,6 +77,8 @@ Return the result in this JSON format:
     }}
   ]
 }}
+
+Make sure you vary the count for each 
 """
     )
     llm = ChatOpenAI(temperature=0)
