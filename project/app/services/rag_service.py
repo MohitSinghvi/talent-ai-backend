@@ -3,7 +3,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain.agents import initialize_agent, Tool
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
-from langchain.document_loaders import CSVLoader
+from langchain_community.document_loaders import CSVLoader
 from langchain.chains import RetrievalQA
 import httpx
 from app.config import settings

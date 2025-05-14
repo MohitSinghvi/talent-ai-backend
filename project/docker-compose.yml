@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Debug port
+    volumes:
+      - ./app:/app/app
+      - ./data:/app/data
+      - ./.env:/app/.env
+    environment:
+      - PYTHONPATH=/app
+    security_opt:
+      - seccomp:unconfined  # Required for debugging
+    restart: unless-stopped
